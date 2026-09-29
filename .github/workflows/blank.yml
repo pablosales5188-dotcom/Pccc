@@ -1,0 +1,96 @@
+name: Windows 10 Max Performance Anti-VM
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-2022
+
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v4
+
+      - name: 👥 Criar Usuário Exclusivo para Jogos
+        shell: pwsh
+        run: |
+          Write-Host "Criando usuário exclusivo 'jogos'..." -ForegroundColor Green
+          $Password = ConvertTo-SecureString "Senha123!" -AsPlainText -Force
+          New-LocalUser -Name "jogos" -Password $Password -Description "Usuario Gamer" -FullName "Jogador"
+          Add-LocalGroupMember -Group "Administrators" -Member "jogos"
+          Add-LocalGroupMember -Group "Remote Desktop Users" -Member "jogos"
+
+      - name: 🔒 Configurar e Liberar RDP Seguro
+        shell: pwsh
+        run: |
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
+          Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -Value 0
+
+      - name: 🕶️ Aplicar Anti-VM Bypass (Método Seguro sem Erros)
+        shell: cmd
+        run: |
+          echo Aplicando camuflagem de hardware compativel...
+          
+          :: 1. Altera chaves da BIOS e Placa-Mãe que nao exigem permissao restrita
+          reg add "HKLM\SYSTEM\CurrentControlSet\Control\SystemInformation" /v "SystemManufacturer" /t REG_SZ /d "ASUSTeK COMPUTER INC." /f
+          reg add "HKLM\SYSTEM\CurrentControlSet\Control\SystemInformation" /v "SystemProductName" /t REG_SZ /d "ROG STRIX Z790-E GAMING WIFI" /f
+          reg add "HKLM\SYSTEM\CurrentControlSet\Control\SystemInformation" /v "BIOSVersion" /t REG_SZ /d "American Megatrends Inc. 2102" /f
+          
+          :: 2. Esconde identificadores de VM no processador
+          reg add "HKLM\HARDWARE\DESCRIPTION\System\CentralProcessor\0" /v "ProcessorNameString" /t REG_SZ /d "Intel(R) Core(TM) i9-14900K CPU @ 3.20GHz" /f
+          
+          :: 3. Mascara o sistema como Windows 10 Pro de desktop
+          reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion" /v "ProductName" /t REG_SZ /d "Windows 10 Pro" /f
+          reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion" /v "EditionID" /t REG_SZ /d "Professional" /f
+
+          :: 4. Desativa de forma segura os serviços nativos do Hyper-V para o Roblox nao detectar
+          sc config vmicguestvc start= disabled
+          sc config vmicheartbeat start= disabled
+          sc config vmickvpexchange start= disabled
+          sc config vmicrdv start= disabled
+          sc config vmicshutdown start= disabled
+          sc config vmictimesync start= disabled
+          sc config vmicvmsession start= disabled
+          sc config vmicvss start= disabled
+
+      - name: 🚀 Tweaks de Desempenho Extremo (Gamer)
+        shell: pwsh
+        run: |
+          Write-Host "Otimizando recursos do sistema..." -ForegroundColor Green
+          powercfg /setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c
+          $RdpKey = 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp'
+          New-ItemProperty -Path $RdpKey -Name "BPP" -Value 16 -PropertyType DWORD -Force
+          New-ItemProperty -Path $RdpKey -Name "MinFrameRate" -Value 60 -PropertyType DWORD -Force
+          Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects' -Name "VisualFXSetting" -Value 2
+          Set-Service -Name "DiagTrack" -StartupType Disabled -ErrorAction SilentlyContinue
+
+      - name: 🌐 Instalar e Conectar o Tailscale via Chocolatey
+        shell: pwsh
+        run: |
+          Write-Host "Instalando Tailscale..." -ForegroundColor Green
+          choco install tailscale -y --no-progress
+          Start-Sleep -Seconds 5
+          
+          Write-Host "Conectando ao Tailscale..." -ForegroundColor Green
+          & "C:\Program Files\Tailscale\tailscale.exe" up --authkey=${{ secrets.TAILSCALE_AUTH_KEY }} --hostname=win10-antivm-pc --accept-routes
+          
+          Write-Host "IP da sua Máquina Virtual Windows 10:" -ForegroundColor Cyan
+          & "C:\Program Files\Tailscale\tailscale.exe" ip -4
+
+      - name: 🟢 Manter o PC Virtual Ativo
+        shell: pwsh
+        run: |
+          Write-Host "==========================================================" -ForegroundColor Green
+          Write-Host "Windows 10 Pro Virtual Pronto!" -ForegroundColor Green
+          Write-Host "CREDENCIAIS NO WINDOWS APP:" -ForegroundColor Yellow
+          Write-Host "Usuário: jogos" -ForegroundColor Cyan
+          Write-Host "Senha: Senha123!" -ForegroundColor Cyan
+          Write-Host "==========================================================" -ForegroundColor Green
+          
+          $i = 0
+          while ($i -lt 360) {
+              Start-Sleep -Seconds 60
+              $i++
+          }
+          
